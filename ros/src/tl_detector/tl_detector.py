@@ -90,7 +90,7 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def get_closest_waypoint(self, pose):
+    def get_closest_waypoint(self, x, y):
         """Identifies the closest path waypoint to the given position
             https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
         Args:
@@ -101,6 +101,7 @@ class TLDetector(object):
 
         """
         #TODO implement
+        self.waypoints
         return 0
 
     def get_light_state(self, light):
@@ -120,7 +121,9 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         #Get classification
-        return self.light_classifier.get_classification(cv_image)
+        #return self.light_classifier.get_classification(cv_image)
+        # TODO: call the claffier instead of using the one you get from simulator.
+        return light.state
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -131,14 +134,46 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
+        # The traffic light should be idntified here using the trained model. For now, we are using
+        # data provided by the simulator.
+        # We should use image_raw instead of image_color. Also, make sure to preprocess this based on
+        # the requirements of trained model
+
+        # we want to find closest light and the closest way point to that light. i.e. for a traffic light
+        # we have a line at which we should stop so find a waypoint that is closest to the line
+        # at which we should stop. line_wp_index is updated with that.
         light = None
+        light_wp = None
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
+        # If we have pose of the car then only.
         if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
-
-        #TODO find the closest visible traffic light (if one exists)
+            car_position = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
+            # Find the closest visible traffic light (if one exist)
+            # Thie diff here indicates number of waypoints that we have generated.
+            # We want to find whether one of the waypoints that we have generated lies on
+            # stop line of a traffic light.
+            diff = len(self.waypoints.waypoints)
+            # The idea is to check all the traffic lights with us. We are interested
+            # in stop line of a traffic light more than the traffic light itself as we want to
+            # stop at the stop line.
+            # Get the closest traffic light's stop line.
+            # Exhaustive search doesn't hurt as we don't have a lot of traffic lights to search.
+            for i, lt in enumerate(self.lights):
+                # Get the line to stop at for this traffic light
+                line = stop_line_positions[i]
+                # Get the closest way point to the stop line
+                temp_wp_idx = self.get_closest_waypoint(line[0], line[1])
+                # check whether this stop line is the closest one so far. If so, update this
+                # stop line as intended stop line. If the closest one lies out of the current waypoints
+                # list than don't consider it, hence d < diff condition
+                d = temp_wp_idx - car_position
+                # if the closest
+                if d >= 0 and d < diff:
+                    diff = d
+                    light = lt
+                    light_wp = temp_wp_idx
 
         if light:
             state = self.get_light_state(light)
