@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
 import rospy
+import numpy as np
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Header
+from scipy.spatial import KDTree
 
 import math
 
@@ -32,21 +35,78 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
-
+        # rospy.Subscriber("/traffic_waypoints")
+         
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
+        
+        # Declaring important fields
+        self.__base_waypoints = None
+        self.__base_waypoints_array = None
+        self.__current_pose = None
+        self.__waypoints_tree = None            
 
-        # TODO: Add other member variables you need below
 
-        rospy.spin()
+    def spin(self, rate=50):
+        """
+        Spins the ros node at a given rate
+        """
+        spin_rate = rospy.Rate(rate)
+        while not rospy.is_shutdown():
+            if self.__current_pose and self.__waypoints_tree:
+                idx = self.get_nearest_waypoint_id(self.__current_pose)
+                self.update_waypoints(idx)
+            
+            spin_rate.sleep()
 
-    def pose_cb(self, msg):
+
+    def pose_cb(self, pose):
         # TODO: Implement
-        pass
+        self.__current_pose = pose.pose            
+        
 
-    def waypoints_cb(self, waypoints):
-        # TODO: Implement
-        pass
+    def waypoints_cb(self, lane):
+        # Check out document for PoseStamped Message: http://docs.ros.org/melodic/api/geometry_msgs/html/msg/PoseStamped.html
+        rospy.loginfo("Received base waypoints")
+        if not self.__waypoints_tree:
+            self.__base_waypoints = lane.waypoints
+            self.__base_waypoints_array = [[w.pose.pose.position.x, w.pose.pose.position.y] for w in self.__base_waypoints]            
+            self.__waypoints_tree = KDTree(self.__base_waypoints_array)                
+            rospy.loginfo("Successfully ingested based waypoints")                    
+
+    def get_nearest_waypoint_id(self, pose):
+        """
+        Returns the nearest waypoint position index for the current pose
+        """        
+        idx = self.__waypoints_tree.query([pose.position.x, pose.position.y])[1]
+        
+        closest_point = self.__base_waypoints_array[idx]
+        previous_point = self.__base_waypoints_array[idx - 1]
+
+        closest_vector = np.array(closest_point)
+        previous_vector = np.array(previous_point)
+        current_pos_vector =  np.array([self.__current_pose.position.x, self.__current_pose.position.y])
+
+        
+        val = np.dot(closest_vector - previous_vector, current_pos_vector - closest_vector)
+        if val > 0:
+            return (idx + 1) % len(self.__base_waypoints_array)
+        
+        return idx
+
+    def update_waypoints(self, idx):
+        """
+        Publishes the latest look-ahead waypoints
+        """        
+        # Create the header and set its timestamp
+        header = Header()
+        header.stamp = rospy.Time.now()
+        
+        msg = Lane()
+        msg.header = header
+        msg.waypoints = self.__base_waypoints[idx: idx + LOOKAHEAD_WPS]
+
+        self.final_waypoints_pub.publish(msg)        
+
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
@@ -73,6 +133,6 @@ class WaypointUpdater(object):
 
 if __name__ == '__main__':
     try:
-        WaypointUpdater()
+        WaypointUpdater().spin(rate=20)
     except rospy.ROSInterruptException:
         rospy.logerr('Could not start waypoint updater node.')
