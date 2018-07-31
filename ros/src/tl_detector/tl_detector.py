@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+from scipy.spatial import KDTree
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -48,6 +49,7 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        self.__waypoints_tree = None
 
         rospy.spin()
 
@@ -56,6 +58,10 @@ class TLDetector(object):
 
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
+        if not self.__waypoints_tree:
+            self.__base_waypoints = waypoints.waypoints
+            self.__base_waypoints_array = [[w.pose.pose.position.x, w.pose.pose.position.y] for w in self.__base_waypoints]
+            self.__waypoints_tree = KDTree(self.__base_waypoints_array)
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -100,9 +106,7 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
-        self.waypoints
-        return 0
+        return self.__waypoints_tree.query([x, y])[1]
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light

@@ -43,7 +43,7 @@ class WaypointUpdater(object):
         self.__base_waypoints = None
         self.__base_waypoints_array = None
         self.__current_pose = None
-        self.waypoints_tree = None
+        self.__waypoints_tree = None
 
 
     def spin(self, rate=50):
@@ -52,7 +52,7 @@ class WaypointUpdater(object):
         """
         spin_rate = rospy.Rate(rate)
         while not rospy.is_shutdown():
-            if self.__current_pose and self.waypoints_tree:
+            if self.__current_pose and self.__waypoints_tree:
                 idx = self.get_nearest_waypoint_id(self.__current_pose)
                 self.update_waypoints(idx)
 
@@ -67,17 +67,17 @@ class WaypointUpdater(object):
     def waypoints_cb(self, lane):
         # Check out document for PoseStamped Message: http://docs.ros.org/melodic/api/geometry_msgs/html/msg/PoseStamped.html
         rospy.loginfo("Received base waypoints")
-        if not self.waypoints_tree:
+        if not self.__waypoints_tree:
             self.__base_waypoints = lane.waypoints
             self.__base_waypoints_array = [[w.pose.pose.position.x, w.pose.pose.position.y] for w in self.__base_waypoints]
-            self.waypoints_tree = KDTree(self.__base_waypoints_array)
+            self.__waypoints_tree = KDTree(self.__base_waypoints_array)
             rospy.loginfo("Successfully ingested based waypoints")
 
     def get_nearest_waypoint_id(self, pose):
         """
         Returns the nearest waypoint position index for the current pose
         """
-        idx = self.waypoints_tree.query([pose.position.x, pose.position.y])[1]
+        idx = self.__waypoints_tree.query([pose.position.x, pose.position.y])[1]
 
         closest_point = self.__base_waypoints_array[idx]
         previous_point = self.__base_waypoints_array[idx - 1]
