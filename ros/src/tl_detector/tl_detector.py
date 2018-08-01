@@ -10,12 +10,14 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+from scipy.spatial import KDTree
 
 STATE_COUNT_THRESHOLD = 3
 
 class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
+        rospy.loginfo("Inited ")
 
         self.pose = None
         self.waypoints = None
@@ -48,6 +50,7 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        self.__waypoints_tree = None
 
         rospy.spin()
 
@@ -56,6 +59,9 @@ class TLDetector(object):
 
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
+        if not self.__waypoints_tree:
+            base_waypoints_array = [[w.pose.pose.position.x, w.pose.pose.position.y] for w in waypoints.waypoints]
+            self.__waypoints_tree = KDTree(base_waypoints_array)
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -85,8 +91,10 @@ class TLDetector(object):
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
+            rospy.logdebug('publishing '+str(light_wp))
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
+            rospy.logdebug('publishing es '+str(self.last_wp))
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
@@ -100,9 +108,7 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
-        self.waypoints
-        return 0
+        return self.__waypoints_tree.query([x, y], 1)[1]
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -123,6 +129,7 @@ class TLDetector(object):
         #Get classification
         #return self.light_classifier.get_classification(cv_image)
         # TODO: call the claffier instead of using the one you get from simulator.
+        rospy.logdebug('got state = '+str(light.state))
         return light.state
 
     def process_traffic_lights(self):
@@ -142,14 +149,14 @@ class TLDetector(object):
         # we want to find closest light and the closest way point to that light. i.e. for a traffic light
         # we have a line at which we should stop so find a waypoint that is closest to the line
         # at which we should stop. line_wp_index is updated with that.
-        light = None
-        light_wp = None
+        closest_light = None
+        line_wp_idx = None
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         # If we have pose of the car then only.
         if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
+            car_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
             # Find the closest visible traffic light (if one exist)
             # Thie diff here indicates number of waypoints that we have generated.
             # We want to find whether one of the waypoints that we have generated lies on
@@ -160,7 +167,7 @@ class TLDetector(object):
             # stop at the stop line.
             # Get the closest traffic light's stop line.
             # Exhaustive search doesn't hurt as we don't have a lot of traffic lights to search.
-            for i, lt in enumerate(self.lights):
+            for i, light in enumerate(self.lights):
                 # Get the line to stop at for this traffic light
                 line = stop_line_positions[i]
                 # Get the closest way point to the stop line
@@ -168,17 +175,17 @@ class TLDetector(object):
                 # check whether this stop line is the closest one so far. If so, update this
                 # stop line as intended stop line. If the closest one lies out of the current waypoints
                 # list than don't consider it, hence d < diff condition
-                d = temp_wp_idx - car_position
+                d = temp_wp_idx - car_wp_idx
                 # if the closest
                 if d >= 0 and d < diff:
                     diff = d
-                    light = lt
-                    light_wp = temp_wp_idx
+                    closest_light = light
+                    line_wp_idx = temp_wp_idx
 
-        if light:
-            state = self.get_light_state(light)
-            return light_wp, state
-        self.waypoints = None
+        if closest_light:
+            state = self.get_light_state(closest_light)
+            return line_wp_idx, state
+
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
