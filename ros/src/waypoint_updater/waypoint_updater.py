@@ -105,11 +105,15 @@ class WaypointUpdater(object):
 
         msg = Lane()
         msg.header = header
+        # Keep the copy of base_waypoints so that you don't have to recompute them
+        # we are using the same base_waypoints when we get multiple messages for stopping
+        # at a stopline.
         base_waypoints = self.__base_waypoints[idx: idx + LOOKAHEAD_WPS]
         msg.waypoints = base_waypoints
         # If you find out that one of the generated waypoints lies on a stop line
         # that we should be stopping at then start decelerating
         if self.__stopline_wp_idx != -1 and self.__stopline_wp_idx < (idx + LOOKAHEAD_WPS):
+            rospy.logdebug('Planning to stop at '+str(self.__stopline_wp_idx)+' from total '+str(idx + LOOKAHEAD_WPS))
             msg.waypoints = self.__decelerate(base_waypoints, idx)
 
         self.final_waypoints_pub.publish(msg)
