@@ -92,8 +92,10 @@ class TLDetector(object):
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
+            rospy.loginfo('submitting = '+str(light_wp))
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
+            rospy.loginfo('submitting els = '+str(self.last_wp))
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
@@ -128,6 +130,7 @@ class TLDetector(object):
         #Get classification
         #return self.light_classifier.get_classification(cv_image)
         # TODO: call the claffier instead of using the one you get from simulator.
+        rospy.loginfo('got state = '+str(light.state))
         return light.state
 
     def process_traffic_lights(self):
