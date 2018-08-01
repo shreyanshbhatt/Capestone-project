@@ -17,6 +17,7 @@ STATE_COUNT_THRESHOLD = 3
 class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
+        rospy.loginfo("Inited ")
 
         self.pose = None
         self.waypoints = None
@@ -106,7 +107,7 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        return self.__waypoints_tree.query([x, y])[1]
+        return self.__waypoints_tree.query([x, y], 1)[1]
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -174,6 +175,7 @@ class TLDetector(object):
                 # list than don't consider it, hence d < diff condition
                 d = temp_wp_idx - car_position
                 # if the closest
+        	rospy.loginfo("light state "+str(lt.state))
                 if d >= 0 and d < diff:
                     diff = d
                     light = lt
