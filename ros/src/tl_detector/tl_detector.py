@@ -175,7 +175,7 @@ class TLDetector(object):
                 # list than don't consider it, hence d < diff condition
                 d = temp_wp_idx - car_wp_idx
                 # if the closest
-                rospy.loginfo("light state "+str(light.state))
+                #rospy.loginfo("light state "+str(light.state))
                 if d >= 0 and d < diff:
                     diff = d
                     closest_light = light

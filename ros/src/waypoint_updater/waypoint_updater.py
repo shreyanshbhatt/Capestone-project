@@ -109,7 +109,7 @@ class WaypointUpdater(object):
         msg.waypoints = base_waypoints
         # If you find out that one of the generated waypoints lies on a stop line
         # that we should be stopping at then start decelerating
-
+        rospy.loginfo('got waypt = '+str(self.__stopline_wp_idx)+' == '+str(idx+LOOKAHEAD_WPS))
         if self.__stopline_wp_idx != -1 and self.__stopline_wp_idx < (idx + LOOKAHEAD_WPS):
             msg.waypoints = self.__decelerate(base_waypoints, idx)
 
