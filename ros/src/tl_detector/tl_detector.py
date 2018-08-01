@@ -60,9 +60,8 @@ class TLDetector(object):
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
         if not self.__waypoints_tree:
-            self.__base_waypoints = waypoints.waypoints
-            self.__base_waypoints_array = [[w.pose.pose.position.x, w.pose.pose.position.y] for w in self.__base_waypoints]
-            self.__waypoints_tree = KDTree(self.__base_waypoints_array)
+            base_waypoints_array = [[w.pose.pose.position.x, w.pose.pose.position.y] for w in waypoints.waypoints]
+            self.__waypoints_tree = KDTree(base_waypoints_array)
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -92,8 +91,10 @@ class TLDetector(object):
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
+            rospy.logdebug('publishing '+str(light_wp))
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
+            rospy.logdebug('publishing es '+str(self.last_wp))
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
