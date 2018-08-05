@@ -19,9 +19,7 @@ def load_graph (graph_file):
 
 class TLClassifier(object):
     def __init__(self, path_to_model):
-
-'''
-       #TODO load classifier
+        #TODO load classifier
        self.tf_session = None
        self.prediction = None
        self.path_to_model = path_to_model
@@ -77,23 +75,27 @@ class TLClassifier(object):
         predict = TrafficLight.UNKNOWN
         if self.predict is not None:
             # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
-            image_np = np.expand_dims(np.asarray(image, dtype=np.uint8), 0)
+            image_np_expanded = np.expand_dims(image_np, axis=0)
 
-            # Get the scores, classes and number of detections
+            # Actual detection
             (scores, classes, num) = self.tf_session.run(
                 [self.detection_scores, self.detection_classes, self.num_detections],
-                feed_dict={self.image_tensor: image_np})
+                feed_dict={self.image_tensor: image_np_expanded})
 
             # Visualization of the results of a detection.
             scores = np.squeeze(scores)
             classes = np.squeeze(classes).astype(np.int32)
 
-            ## Need to chose from the classes if the num_detections > 1 and also implement
-            ## a criteria to set for prediction
-            predict = classes[0]
+            # calculate prediction
+            c = 5
+            predict = self.clabels[c]
+            cc = classes[0]
+            confidence = scores[0]
+            if cc > 0 and cc < 4 and confidence is not None and confidence > THRESHOLD:
+                c = cc
+                predict = self.clabels[c]
 
         return predict
- '''
 
 
         return TrafficLight.UNKNOWN
