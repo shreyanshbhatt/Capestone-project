@@ -17,7 +17,7 @@ STATE_COUNT_THRESHOLD = 3
 class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
-        rospy.loginfo("Inited ")
+        rospy.loginfo("Inited tl_detector ")
 
         self.pose = None
         self.waypoints = None
@@ -39,11 +39,11 @@ class TLDetector(object):
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
-
+        
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
         self.bridge = CvBridge()
-        self.light_classifier = TLClassifier()
+        self.light_classifier = TLClassifier(self.config['is_site'])
         self.listener = tf.TransformListener()
 
         self.state = TrafficLight.UNKNOWN
@@ -124,13 +124,14 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
 
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
 
         #Get classification
-        #return self.light_classifier.get_classification(cv_image)
+        predicted_state = self.light_classifier.get_classification(cv_image)
+        rospy.logdebug('got state = '+str(light.state)+" == "+str(predicted_state))
+        return predicted_state
         # TODO: call the claffier instead of using the one you get from simulator.
-        rospy.logdebug('got state = '+str(light.state))
-        return light.state
+        #return light.state
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
