@@ -82,10 +82,10 @@ class TLDetector(object):
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
 
-        # TODO TO REMOVE
-        # cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")        
-        # predicted_state = self.light_classifier.get_classification(cv_image)
-        # rospy.loginfo("*** Predicted state " + str(predicted_state))
+        # LEAVE COMMENTED - only used for testing on ROSBAG
+        #cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")        
+        #predicted_state = self.light_classifier.get_classification(cv_image)
+        #rospy.loginfo("*** Predicted state " + str(predicted_state))
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -132,7 +132,9 @@ class TLDetector(object):
         if(not self.has_image):
             self.prev_light_loc = None
             return False
-
+        
+        # rospy.loginfo("Camera encoding is " + self.camera_image.encoding)
+        self.camera_image.encoding = "rgb8"
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
 
         #Get classification
