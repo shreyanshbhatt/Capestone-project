@@ -23,6 +23,7 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
+        self.__waypoints_tree = None
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -49,22 +50,24 @@ class TLDetector(object):
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
-        self.state_count = 0
-        self.__waypoints_tree = None
+        self.state_count = 0        
 
         rospy.spin()
 
     def pose_cb(self, msg):
         self.pose = msg
+        # rospy.loginfo("Got pose")
 
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
         if not self.__waypoints_tree:
             base_waypoints_array = [[w.pose.pose.position.x, w.pose.pose.position.y] for w in waypoints.waypoints]
             self.__waypoints_tree = KDTree(base_waypoints_array)
+            rospy.loginfo("Processed base waypoints")
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
+        # rospy.loginfo("Got positions of traffic lights")
 
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
@@ -74,9 +77,15 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
 
         """
+        # rospy.loginfo("Traffic light image received")
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
+
+        # TODO TO REMOVE
+        # cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")        
+        # predicted_state = self.light_classifier.get_classification(cv_image)
+        # rospy.loginfo("*** Predicted state " + str(predicted_state))
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -128,7 +137,7 @@ class TLDetector(object):
 
         #Get classification
         predicted_state = self.light_classifier.get_classification(cv_image)
-        rospy.logdebug('got state = '+str(light.state)+" == "+str(predicted_state))
+        rospy.loginfo('got state = '+str(light.state)+" == "+str(predicted_state))
         return predicted_state
         # TODO: call the claffier instead of using the one you get from simulator.
         #return light.state
@@ -184,6 +193,7 @@ class TLDetector(object):
                     line_wp_idx = temp_wp_idx
 
         if closest_light:
+            # rospy.loginfo("Got closest light identified")
             state = self.get_light_state(closest_light)
             return line_wp_idx, state
 
