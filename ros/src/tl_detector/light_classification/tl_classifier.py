@@ -94,9 +94,7 @@ class TLClassifier(object):
         Returns:
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
-        """
-        start_time = time.time()
-
+        """        
         if not self.__model_loaded:
             return TrafficLight.UNKNOWN
         
@@ -118,16 +116,14 @@ class TLClassifier(object):
         final_scores, final_classes = filter_results(confidence_cutoff, scores, classes)
 
         end_time = time.time()
-        # print("TensorFlow time taken is " + str((end_time - tf_start_time)))
-        # print("Total inference time taken is " + str((end_time - start_time)))
 
         if len(final_classes) == 0:
-            print("*** Predicted color did not make the cut " + colors[classes[0] - 1] + " and score is " + str(scores[0]))     
+            rospy.loginfo("*** Predicted color did not make the cut " + colors[classes[0] - 1] + " and score is " + str(scores[0]))     
             return TrafficLight.UNKNOWN
 
         #TrafficLight messages have red = 0, yellow = 1, green = 2. 
         # The model is trained to identify class red = 1, yellow = 2, green = 3. 
         # Hence, subtracting 1 to match with TrafficLight message spec.
-        print("Predicted color is " + colors[final_classes[0] - 1] + " and score is " + str(final_scores[0])) 
+        rospy.loginfo("Predicted color is " + colors[final_classes[0] - 1] + " and score is " + str(final_scores[0])) 
         return final_classes[0] - 1      
             
