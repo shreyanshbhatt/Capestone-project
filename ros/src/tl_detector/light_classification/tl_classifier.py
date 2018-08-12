@@ -6,6 +6,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import os
+import cv2
 
 def load_graph (graph_file):
     """
@@ -41,6 +42,7 @@ class TLClassifier(object):
         self.tf_session = None
         self.prediction = None
         self.path_to_model = '../../../deep_learning/models/frozen_graphs/'
+        self.sample_image_path = '../../../deep_learning/assets/test_real.png'
        # ros_root = rospkg.get_ros_root()
        # Not using the following for now to locate the classification model
        # using absolute path since the models are in deep_learning/....
@@ -81,8 +83,11 @@ class TLClassifier(object):
             # tf_start_time = time.time()    
             self.tf_session = tf.Session(graph=self.tf_graph, config=self.config)        
 
-        self.__model_loaded = True              
-        rospy.loginfo("Successfully loaded model and configured placeholders")
+        self.__model_loaded = True                      
+        img = cv2.imread(self.sample_image_path, cv2.IMREAD_COLOR)
+        self.get_classification(img)        
+        rospy.loginfo("Successfully loaded model, configured placeholders, and ran inference on sample image")
+
 
 
     def get_classification(self, image, confidence_cutoff=0.3):

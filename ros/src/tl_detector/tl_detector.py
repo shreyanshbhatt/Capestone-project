@@ -36,7 +36,8 @@ class TLDetector(object):
         rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
+        # sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1, buff_size=2*52428800) # 52 MB buffer size
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -50,7 +51,8 @@ class TLDetector(object):
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
-        self.state_count = 0        
+        self.state_count = 0  
+        self.img_count = 0      
 
         rospy.spin()
 
@@ -133,9 +135,15 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
         
-        # rospy.loginfo("Camera encoding is " + self.camera_image.encoding)
-        self.camera_image.encoding = "rgb8"
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
+        rospy.loginfo("Camera encoding is " + self.camera_image.encoding)
+        # self.camera_image.encoding = "rgb8"
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        # cv_image = cv_image[...,::-1]
+
+        if self.img_count < 1000:
+            cv2.imwrite("/home/eddie/capstone_results/images/" + str(self.img_count) + ".png" , cv_image)
+            self.img_count +=1
+
 
         #Get classification
         predicted_state = self.light_classifier.get_classification(cv_image)
