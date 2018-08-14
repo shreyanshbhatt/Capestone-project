@@ -52,7 +52,7 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0  
-        self.img_count = 0      
+        # self.img_count = 0      
 
         rospy.spin()
 
@@ -135,14 +135,14 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
         
-        rospy.loginfo("Camera encoding is " + self.camera_image.encoding)
+        # rospy.loginfo("Camera encoding is " + self.camera_image.encoding)
         # self.camera_image.encoding = "rgb8"
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
         # cv_image = cv_image[...,::-1]
 
-        if self.img_count < 1000:
-            cv2.imwrite("/home/eddie/capstone_results/images/" + str(self.img_count) + ".png" , cv_image)
-            self.img_count +=1
+        # if self.img_count < 1000:
+        #     cv2.imwrite("/home/eddie/capstone_results/images/" + str(self.img_count) + ".png" , cv_image)
+        #     self.img_count +=1
 
 
         #Get classification
